@@ -10,9 +10,30 @@ Run onboarding only for a first installation, a missing or mismatched profile, a
 
 ## Confirm Runtime Availability
 
-Current Codex releases enable subagent workflows by default. Custom profile selection still requires a runtime whose `spawn_agent` tool exposes `agent_type`; the tool surface in the active task is stronger evidence than a remembered feature flag.
+Current Codex releases enable subagent workflows by default. The tool surface in the active task is stronger evidence than a remembered feature flag or a TOML file.
 
-If `agent_type` is missing, update or restart Codex and open a new task before testing again. Do not enable an undocumented or stale feature flag from memory. See the current [Codex subagent manual](https://learn.chatgpt.com/docs/agent-configuration/subagents.md).
+Before declaring custom-profile routing available, inspect the model-visible `spawn_agent` schema. It must expose `agent_type`; when the runtime offers direct routing controls, also record whether `model`, `reasoning_effort`, and `service_tier` are exposed. A runtime that hides these fields must not be treated as ready merely because the profile TOML files exist.
+
+### Diagnose the Sol / MultiAgent V2 routing regression
+
+Some GPT-5.6 Sol sessions select MultiAgent V2 from model metadata and can default `hide_spawn_agent_metadata` to `true`. Despite its name, this setting removes functional routing inputs from the model-visible `spawn_agent` schema, including `agent_type`; a Sol parent then cannot select the configured Luna or Terra profiles.
+
+If the active schema is missing `agent_type`, or a fresh explicit-profile probe inherits the parent model instead of the profile model:
+
+1. Do not silently use a generic child or claim Team Mode is ready.
+2. Tell the user that the active runtime has the Sol/MultiAgent V2 routing regression and ask before changing personal or project Codex configuration.
+3. If authorized, replace—not alongside—a scalar `multi_agent_v2 = true` entry with this table, then open a new Codex task or restart before re-testing:
+
+   ```toml
+   [features.multi_agent_v2]
+   hide_spawn_agent_metadata = false
+   tool_namespace = "agents"
+   ```
+
+   TOML cannot define both `features.multi_agent_v2 = true` and `[features.multi_agent_v2]`; preserve unrelated configuration and make only that conversion. `tool_namespace = "agents"` addresses the known namespace/schema mismatch reported with the same workaround.
+4. Re-inspect the new task's tool schema and run the controlled guard and explicit Explorer probes below. Treat their runtime traces—not the child self-report—as the acceptance evidence.
+
+If `agent_type` remains missing after a restart/new task, update Codex and repeat the schema check. Do not enable undocumented or stale flags from memory. See the current [Codex subagent manual](https://learn.chatgpt.com/docs/agent-configuration/subagents.md).
 
 When spawning, pass the exact working profile name through `agent_type`. `task_name` only labels the child thread and never selects a profile. Never omit `agent_type` or pass `default` during normal routing. Do not substitute a generic child named `explorer`, `executor`, or `reviewer` when the intended custom profile is unavailable.
 
@@ -87,7 +108,7 @@ For a project installation, use the corresponding `<repository>/.codex/agents/` 
 
 Installed profiles and running subagents are different things. An activity or agent-thread list normally shows only instances that have already been spawned; it does not need to show all installed profiles while they are idle.
 
-Verify installation by checking the TOML files and their exact `name` fields. Restart Codex or open a new task before runtime checks.
+Verify installation by checking the TOML files and their exact `name` fields. Restart Codex or open a new task before runtime checks. First confirm that the active `spawn_agent` schema exposes `agent_type`; if it does not, follow the Sol / MultiAgent V2 diagnostic above before running any working-role probe.
 
 First run one controlled guard self-test: deliberately omit `agent_type`, set `fork_turns="none"`, and give the child a no-tool one-line probe. This onboarding self-test is the only permitted omission. The child must ignore the probe and return exactly:
 
