@@ -1,0 +1,8 @@
+Use case: stylized-concept
+Asset type: transparent cutout subject for a compact 1200×320 GitHub README hybrid hero
+
+Create one cohesive editorial manga-ink subject cluster that shows a main Codex agent routing three independent workstreams. A minimal stick-figure protagonist with a round head, thin round glasses, dot eyes, a confident smile, and thin limbs stands at a small routing desk, moving three task sheets along three branching paths. Show a magnifying-glass/evidence-map motif, a code-bracket/tool motif, and a shield/check motif. A chubby warm-yellow Border Collie sits beside the protagonist holding a blank checklist clipboard.
+
+Use clean black manga ink with varied line weight and restrained circular halftone. Keep about 90% black, white, and gray; use warm yellow for the dog, muted blue for evidence, and muted green for execution and success.
+
+Place the whole subject on a perfectly uniform flat #FF00FF chroma-key background. Keep generous padding. Do not use magenta inside the subject. Do not add text, letters, numbers, labels, logos, watermarks, gradients, floor planes, reflections, shadows, extra characters, dashboards, or decorative clutter.

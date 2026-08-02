@@ -10,8 +10,7 @@ PROFILES = {
     "default.toml": ("default", "gpt-5.6-terra", "low", "read-only"),
     "Explorer.toml": ("Explorer", "gpt-5.6-luna", "medium", "read-only"),
     "Executor.toml": ("Executor", "gpt-5.6-luna", "high", "workspace-write"),
-    "Complex Executor.toml": ("Complex Executor", "gpt-5.6-terra", "high", "workspace-write"),
-    "Reviewer.toml": ("Reviewer", "gpt-5.6-sol", "high", "read-only"),
+    "Reviewer.toml": ("Reviewer", "gpt-5.6-terra", "medium", "read-only"),
 }
 
 
@@ -42,17 +41,13 @@ class AgentProfileTests(unittest.TestCase):
         self.assertIn("the delegated task was not executed", instructions)
         self.assertIn("agent_type was omitted or set to default", instructions)
 
-    def test_complex_executor_reports_risk_without_recommending_another_agent(self) -> None:
-        data = tomllib.loads((ROOT / "agents" / "Complex Executor.toml").read_text(encoding="utf-8"))
+    def test_executor_supports_substantial_bounded_work_without_overlapping_ownership(self) -> None:
+        data = tomllib.loads((ROOT / "agents" / "Executor.toml").read_text(encoding="utf-8"))
         instructions = data["developer_instructions"]
-        self.assertIn("Do not recommend or name another Agent as the next step.", instructions)
-        self.assertIn("without recommending another Agent", instructions)
-        self.assertIn("novel architecture", instructions)
-        self.assertIn("retry a failing environment-only verification at most once", instructions)
-        self.assertIn("Verify the user-visible or operational result directly", instructions)
-        self.assertIn("Do not replace the requested product outcome with an easier proxy", instructions)
-        self.assertNotIn("warrant a fresh `Reviewer`", instructions)
-        self.assertNotIn("requires an independent handoff", instructions)
+        self.assertIn("routine or substantial implementation", instructions)
+        self.assertIn("mutable-system ownership is explicit", instructions)
+        self.assertIn("Never revert their changes", instructions)
+        self.assertNotIn("Complex Executor", instructions)
 
     def test_executor_must_prove_named_checks_and_changed_behavior(self) -> None:
         data = tomllib.loads((ROOT / "agents" / "Executor.toml").read_text(encoding="utf-8"))
@@ -66,6 +61,11 @@ class AgentProfileTests(unittest.TestCase):
         self.assertIn("passed checks, exclusions, and stop condition", instructions)
         self.assertIn("Do not repeat broad validation that already passed", instructions)
         self.assertIn("return a usable partial verdict immediately", instructions)
+        self.assertIn("Simplify review lens", instructions)
+        self.assertIn("Code quality", instructions)
+        self.assertIn("Performance", instructions)
+        self.assertIn("Reuse", instructions)
+        self.assertIn("small behavior-preserving fixes", instructions)
 
 
 if __name__ == "__main__":

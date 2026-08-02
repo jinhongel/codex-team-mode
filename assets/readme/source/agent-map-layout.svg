@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
+  <title id="title">Team Mode — editable hero layout</title>
+  <desc id="desc">Editable mixed hero source with a transparent oil-visual scene showing one lead routing three independent workstreams.</desc>
+
+  <defs>
+    <linearGradient id="hero-wash" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f4ec"/>
+      <stop offset="1" stop-color="#eef4ff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="320" rx="28" fill="url(#hero-wash)"/>
+  <path d="M0 250C220 190 410 335 640 263S1020 207 1200 248V320H0Z" fill="#fff" fill-opacity=".42"/>
+
+  <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif">
+    <g id="copy">
+      <rect x="68" y="36" width="270" height="31" rx="15.5" fill="#0b0d12"/>
+      <text x="203" y="57" text-anchor="middle" fill="#f7f4ec" font-size="14" font-weight="850" letter-spacing="1.4">TEAM MODE · ROUTING</text>
+      <text x="68" y="121" fill="#0b0d12" font-size="44" font-weight="850" letter-spacing="-1.5">Choose the team the task needs.</text>
+      <text x="70" y="163" fill="#3f4652" font-size="20" font-weight="650">Dynamic by value, never a fixed pipeline.</text>
+      <text x="70" y="193" fill="#626978" font-size="20">Main thread decides, scopes, and accepts the final result.</text>
+      <text x="70" y="222" fill="#626978" font-size="20">Independent slices can run in parallel.</text>
+    </g>
+
+    <g id="subject-slot" transform="translate(752 18)">
+      <image href="agent-map-subject.png" xlink:href="agent-map-subject.png" width="430" height="250" preserveAspectRatio="xMidYMid meet"/>
+    </g>
+  </g>
+</svg>

@@ -3,39 +3,37 @@
 </p>
 
 <p align="center">
-  <img src="./assets/readme/agent-map.svg" width="100%" alt="Four character-driven Team Mode agents divide exploration, bounded execution, complex execution, and independent review while the main thread leads and verifies the work.">
+  <img src="./assets/readme/agent-map.webp" width="100%" alt="Team Mode routes evidence gathering, bounded execution, and independent review while the main thread leads and accepts the final result.">
 </p>
 
-`team-mode` is a Codex Skill for coordinating four working agents across substantial development, research, analysis, planning, document, data, and content tasks. The main thread keeps unresolved decisions and verifies the final result; subagents take on work that benefits from focused context, lower cost, safe parallelism, or independent judgment. A separate low-cost `default` guard rejects any spawn that omits `agent_type`.
+`team-mode` is a Codex Skill for coordinating three working agents across substantial development, research, analysis, planning, document, data, and content tasks. The main thread keeps unresolved decisions and performs final acceptance; subagents take on work that benefits from focused context, lower cost, safe parallelism, or independent judgment. A separate low-cost `default` guard rejects any spawn that omits `agent_type`.
 
-It is a routing guide, not a mandatory pipeline.
+It is a value-based routing guide, not a mandatory pipeline.
 
 ## The team
 
-- **Explorer（探索者）· Luna Medium · read-only** — gathers evidence across current web sources, documents, data, code, APIs, logs, and configuration.
-- **Executor（执行者）· Luna High · workspace-write** — completes clear, bounded, low-risk work with deterministic checks.
-- **Complex Executor（复杂执行者）· Terra High · workspace-write** — completes substantial but bounded implementation after architecture, acceptance checks, and safety boundaries are clear.
-- **Reviewer（复审者）· Sol High · read-only** — independently checks stable code, reports, plans, analyses, data, and other artifacts from fresh context.
+- **Explorer（探索者）· Luna Medium · read-only** — gathers evidence across current web sources, documents, datasets, codebases, schemas, APIs, logs, and configuration.
+- **Executor（执行者）· Luna High · workspace-write** — completes clear, bounded work, including substantial bounded implementation, after scope, acceptance checks, and safety boundaries are clear.
+- **Reviewer（复审者）· Terra Medium · read-only** — independently checks stable code, reports, plans, analyses, data, and other artifacts from fresh context.
 
-Every spawn must explicitly pass one of those four names through `agent_type`. `task_name` is only a label, and `default` is never a working role.
+Every spawn must explicitly pass one of those three names through `agent_type`. `task_name` is only a label, and `default` is never a working role.
 
-Luna keeps exploration economical and gives bounded execution a higher reasoning margin. Terra handles most conventional complex implementation while the main thread retains architecture decisions and final acceptance. Sol is reserved for focused independent review of concrete consequential risks.
+Luna keeps discovery economical and gives bounded execution a higher reasoning margin. Terra provides fresh, independent review while the main thread retains architecture decisions and final acceptance.
 
 The TOML sandbox is a profile default, not a guaranteed isolation boundary: a live parent permission override can be reapplied to children. Use the task-scoped usage report to verify each session's effective sandbox.
 
 ## How routing works
 
 - Use Team Mode when delegation, parallel work, context isolation, lower-cost execution, or independent review has clear value.
-- Team Mode may use no subagents at all. The main thread handles straightforward work when an Executor or Reviewer would add more coordination than value.
+- Team Mode may use no subagents at all. The main thread handles straightforward work when an agent would add more coordination than value.
 - Before every spawn, identify the material benefit and count briefing, inspection, waiting, and rework as coordination cost. Explicitly invoking Team Mode does not make a spawn mandatory.
 - Give every child a dispatch packet with `Outcome`, `Benefit`, `Sources`, `Scope`, `Checks`, `Stop when`, and `Return`; keep the slice in the main thread if the packet is incomplete or the gain does not exceed coordination cost.
+- When two or more independent slices are ready, prefer dispatching them in parallel. The team size is dynamic: there is no fixed number of agents and no required sequence.
 - Give non-trivial read-only discovery to `Explorer`; the main thread can wait instead of repeating the same work.
 - After discovery, the main thread chooses whether to continue directly or delegate.
-- Use Terra High Complex Executor for conventional multi-file implementation with deterministic checks. Keep novel architecture, weak or visual verification, export/compiler behavior, and high-consequence security or rollback judgment in the main thread; use Sol High Reviewer only for a concrete residual risk.
-- Reuse an Explorer or executor while its knowledge of the same topic, system, artifact, or workstream remains useful.
-- A `fork_turns="none"` brief must name every source artifact needed for factual claims; children do not inherit materials that only appeared in the parent conversation.
-- Use `Reviewer` only when fresh independent judgment has clear value, and start every new Reviewer with no inherited conversation. Its packet must also name the unresolved risk, exact evidence, checks already passed, revalidation to skip, and a bounded stop condition.
-- Keep fan-out in the main thread; under standard Team Mode, children never create descendants.
+- Use `Executor` for localized or substantial bounded implementation once architecture, acceptance, and safety decisions are clear. Keep novel architecture, weak or visual verification, export/compiler behavior, and high-consequence security or rollback judgment in the main thread.
+- Use `Reviewer` only when fresh independent judgment has clear value. Start each new Reviewer with no inherited conversation and give it a concrete unresolved risk, exact evidence, checks already passed, and a bounded stop condition.
+- Keep fan-out in the main thread; children do not create descendants under standard Team Mode.
 - Parallelize only genuinely independent work and keep one writer per shared target.
 - After a child error or interruption, inspect shared artifacts before retrying; recover usable work instead of automatically repeating it.
 - The main thread inspects the actual sources, artifacts, changes, and verification before accepting delegated work.
@@ -50,35 +48,35 @@ Install the Skill:
 npx skills add oil-oil/codex-team-mode
 ```
 
-The four working Agent profiles and the default-on `default` dispatch guard are separate from the Skill. Copy the five TOML templates in [`agents/`](./agents) to `~/.codex/agents/` for personal use or `<repository>/.codex/agents/` for one project. Onboarding runs only for first setup, missing profiles, or explicit repair and verification requests.
+The three working Agent profiles and the default-on `default` dispatch guard are separate from the Skill. Copy the four TOML templates in [`agents/`](./agents) to `~/.codex/agents/` for personal use or `<repository>/.codex/agents/` for one project. Onboarding runs only for first setup, missing profiles, or explicit repair and verification requests.
 
 See [Custom Agent Profiles](./skills/team-mode/references/custom-agents.md) for exact filenames, safe installation, validation, repair, and model customization. Open a new Codex task or restart Codex if newly installed profiles do not appear immediately.
 
-After onboarding, Codex reports what was installed and how to disable only the guard. Disabling it is a recoverable move of `default.toml` outside the active `agents` directory; the four working profiles remain installed.
+After onboarding, Codex reports what was installed and how to disable only the guard. Disabling it is a recoverable move of `default.toml` outside the active `agents` directory; the three working profiles remain installed.
 
 ## Use
 
 The Skill can trigger automatically for substantial tasks, or you can invoke it directly:
 
 ```text
-Use $team-mode for this task. Start the smallest useful team and keep unresolved decisions and final acceptance in the main thread.
+Use $team-mode for this task. Choose the smallest useful team, prefer parallel dispatch for independent slices, and keep unresolved decisions and final acceptance in the main thread.
 ```
 
-You do not need to name every agent yourself. The main thread chooses the smallest useful team and remains responsible for the combined result.
+You do not need to name every agent yourself. The main thread chooses the smallest useful team, adapts it to the task's value, and remains responsible for the combined result.
 
 ## Customize
 
-You can change `model` and `model_reasoning_effort` in `agents/*.toml`. Preserve the role boundaries: Explorer and Reviewer stay read-only, mutation permissions remain with the executors, new reviews use fresh context, and final acceptance stays with the main thread.
+You can change `model` and `model_reasoning_effort` in `agents/*.toml`. Preserve the role boundaries: Explorer and Reviewer stay read-only, mutation permissions remain with Executor, new reviews use fresh context, and final acceptance stays with the main thread.
 
 ## Repository layout
 
 ```text
 codex-team-mode/
-├── agents/                  # Four working profiles plus one dispatch guard
-├── assets/readme/           # GitHub-safe SVG visuals
+├── agents/                  # Three working profiles plus one dispatch guard
+├── assets/readme/           # README visuals and editable source layers
 ├── skills/team-mode/        # Installable Skill
 │   ├── agents/openai.yaml
-│   ├── references/         # Profile setup and evaluation guidance
+│   ├── references/          # Profile setup and evaluation guidance
 │   ├── scripts/usage_by_model.py
 │   └── SKILL.md
 ├── tests/                   # Agent, routing, and usage regression tests
