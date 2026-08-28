@@ -49,14 +49,14 @@ Every new child brief must be compact and self-contained. Include these labeled 
 - `Stop when`: the bounded completion, blocker, or evidence threshold that ends the turn.
 - `Return`: the concise report or artifact format expected by the parent.
 
-Do not spawn while required `Sources`, `Scope`, `Checks`, or `Stop when` is missing, or while the slice is not independently finishable. The parent must already have identified a real `Benefit`; if that benefit is marginal or speculative, keep the slice in the main thread.
+Do not spawn while required `Outcome`, `Sources`, `Scope`, `Checks`, or `Stop when` is missing, or while the slice is not independently finishable. The parent must already have identified a real `Benefit`; if that benefit is marginal or speculative, keep the slice in the main thread.
 
 For a `Reviewer`, also provide one neutrally framed `Unresolved risk`, the exact `Evidence` to inspect, `Checks already passed`, and `Do not repeat`. Frame the risk as a question to test, not as a suspected defect or desired verdict. Do not tell the Reviewer the prior debate, author, preferred conclusion, or expected findings. Require a usable partial verdict if the stop condition arrives before exhaustive review.
 
 ## Route The Work
 
 - `Explorer`（Luna Medium）: use for non-trivial read-only discovery that benefits from isolated context. Give it exact sources and a bounded evidence question. Medium is intentional because most Explorer work is search, tracing, and evidence compression rather than final design judgment.
-- `Executor`（Luna Max）: use for localized or substantial bounded execution only after the main thread fixes unresolved architecture, product, safety, scope, interfaces, data models, state flows, and acceptance criteria. Max is intentionally conservative: implementation quality and low rework take priority over minimizing reasoning usage.
+- `Executor`（Luna xHigh）: use for localized or substantial bounded execution only after the main thread fixes unresolved architecture, product and business semantics, safety, scope, interfaces, data models, state flows, and acceptance criteria. xHigh deliberately leaves more reasoning margin than High for mutable implementation without treating every bounded task as a Max-level hardest-case workload.
 - `Reviewer`（Terra High）: use fresh read-only context when independent review has clear value. High gives extra reasoning margin for counterexamples, regression risk, requirement coverage, and weak assumptions without turning the Reviewer into a second main architect.
 - Main thread: keep novel architecture, ambiguous requirements, high-consequence security or rollback judgment, weak or subjective verification, broad cross-system decisions, and any task whose correct outcome cannot be bounded reliably for a child.
 
