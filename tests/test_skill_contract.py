@@ -13,6 +13,7 @@ class TeamModeSkillContractTests(unittest.TestCase):
         for label in ("Outcome", "Sources", "Scope", "Checks", "Stop when", "Return"):
             with self.subTest(label=label):
                 self.assertIn(f"`{label}`", skill)
+        self.assertIn("required `Outcome`, `Sources`, `Scope`, `Checks`, or `Stop when`", skill)
         self.assertIn("`Benefit`", skill)
         for label in ("Unresolved risk", "Evidence", "Checks already passed", "Do not repeat"):
             with self.subTest(label=label):
@@ -21,7 +22,7 @@ class TeamModeSkillContractTests(unittest.TestCase):
         self.assertIn("children never spawn descendants", skill)
         self.assertIn("request a partial verdict once, then interrupt it", skill)
         self.assertIn("`Explorer`（Luna Medium）", skill)
-        self.assertIn("`Executor`（Luna Max）", skill)
+        self.assertIn("`Executor`（Luna xHigh）", skill)
         self.assertIn("`Reviewer`（Terra High）", skill)
         self.assertIn("Main thread: keep novel architecture", skill)
         self.assertIn("state the handoff", skill)
@@ -58,6 +59,7 @@ class TeamModeSkillContractTests(unittest.TestCase):
         self.assertIn("%USERPROFILE%\\.codex\\agents\\", reference)
         self.assertIn("gpt-5.6-terra", reference)
         self.assertIn("gpt-5.6-luna", reference)
+        self.assertIn("`Executor`: `gpt-5.6-luna`, `xhigh`", reference)
         self.assertNotIn("hide_spawn_agent_metadata", reference)
         self.assertNotIn("tool_namespace", reference)
 
@@ -79,6 +81,8 @@ class TeamModeSkillContractTests(unittest.TestCase):
                 self.assertIn("default.toml", readme)
         english = (ROOT / "README.md").read_text(encoding="utf-8")
         chinese = (ROOT / "README.zh-CN.md").read_text(encoding="utf-8")
+        self.assertIn("Executor · Luna xHigh", english)
+        self.assertIn("Executor（执行者）· Luna xHigh", chinese)
         self.assertIn("optional strict dispatch guard", english)
         self.assertIn("可选的严格派发哨兵", chinese)
         self.assertTrue((ROOT / "assets" / "readme" / "agent-map.webp").is_file())
