@@ -19,15 +19,21 @@ class TeamModeSkillContractTests(unittest.TestCase):
         self.assertIn("usable partial verdict", skill)
         self.assertIn("children never spawn descendants", skill)
         self.assertIn("request a partial verdict once, then interrupt it", skill)
-        self.assertIn("`Executor`（Luna High）", skill)
-        self.assertIn("Main thread: keep the critical slice", skill)
-        self.assertIn("`Reviewer`（Terra Medium）", skill)
-        self.assertNotIn("Complex Executor", skill)
-        self.assertIn("execution checkpoint", skill)
-        self.assertIn("one or more Executors", skill)
+        self.assertIn("`Explorer`（Luna Medium）", skill)
+        self.assertIn("`Executor`（Luna Max）", skill)
+        self.assertIn("`Reviewer`（Terra High）", skill)
+        self.assertIn("Main thread: keep novel architecture", skill)
         self.assertIn("state the handoff", skill)
-        self.assertIn("three independent lenses", skill)
+        self.assertIn("not by file count alone", skill)
+        self.assertIn("one risk-focused Reviewer by default", skill)
         self.assertIn("references/interactive-testing.md", skill)
+
+    def test_delegation_requires_clear_net_benefit(self) -> None:
+        skill = (ROOT / "skills" / "team-mode" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("clear net benefit", skill)
+        self.assertIn("Merely having two independent slices is not enough", skill)
+        self.assertIn("If that benefit is marginal or speculative", skill)
+        self.assertIn("Decomposition is analysis, not a requirement to delegate", skill)
 
     def test_agent_type_dispatch_gate_is_explicit(self) -> None:
         skill = (ROOT / "skills" / "team-mode" / "SKILL.md").read_text(encoding="utf-8")
@@ -56,8 +62,6 @@ class TeamModeSkillContractTests(unittest.TestCase):
         self.assertIn("~/.codex/agents-disabled/default.toml", reference)
         self.assertIn("Only when the parent is GPT-5.6 Sol", reference)
         self.assertIn("do not apply the workaround below", reference)
-        self.assertNotIn("Complex Executor", reference)
-        self.assertNotIn("features enable multi_agent_v2", reference)
 
     def test_interactive_testing_is_conditional_and_keeps_one_operator(self) -> None:
         reference = (
@@ -73,8 +77,6 @@ class TeamModeSkillContractTests(unittest.TestCase):
             with self.subTest(filename=filename):
                 readme = (ROOT / filename).read_text(encoding="utf-8")
                 self.assertIn("./assets/readme/agent-map.webp", readme)
-                self.assertNotIn("Complex Executor", readme)
-                self.assertNotIn("Sol High", readme)
         self.assertTrue((ROOT / "assets" / "readme" / "agent-map.webp").is_file())
         self.assertFalse((ROOT / "assets" / "readme" / "agent-map.svg").exists())
 
