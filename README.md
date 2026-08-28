@@ -13,7 +13,7 @@ It is a value-based routing guide, not a mandatory pipeline. A task being large 
 ## The team
 
 - **Explorer · Luna Medium · read-only** — bounded search, tracing, and evidence compression. Medium is intentional: when discovery becomes architecture-defining, high-consequence, or too broad for reliable bounded evidence gathering, return the evidence and uncertainty to the main thread instead of mechanically raising Explorer effort.
-- **Executor · Luna Max · workspace-write** — implementation, fixes, and tests after scope, interfaces, data models, state flows, acceptance checks, and safety boundaries are fixed. Max is a deliberately conservative quality margin: reducing implementation omissions and rework matters more than tuning to the theoretical minimum reasoning level.
+- **Executor · Luna xHigh · workspace-write** — implementation, fixes, and tests after scope, business semantics, interfaces, data models, state flows, acceptance checks, and safety boundaries are fixed. xHigh keeps substantial quality headroom over High while reserving Max for genuinely hardest quality-first workloads.
 - **Reviewer · Terra High · read-only** — fresh-context independent review of stable artifacts. High gives more reasoning margin for counterexamples, regressions, requirement coverage, and weak assumptions without making Reviewer a second architect.
 
 An optional **default · Luna Low · read-only** dispatch guard is included in the repository. It rejects omitted/default `agent_type` dispatches but is not required by Team Mode and can affect other subagent workflows in the same installation scope.
@@ -25,7 +25,7 @@ These defaults do not follow a mechanical “raise every role one level” rule.
 - Team Mode may use no subagents at all. Delegate only when expected benefit clearly exceeds briefing, inspection, waiting, rework, token, and conflict cost.
 - Substantial tasks get a brief decomposition pass, but “can be split” does not mean “should be delegated.” Even independent slices are parallelized only when the gain is real.
 - Before spawning, the parent must identify a real routing benefit. The child itself receives a compact self-contained packet with `Outcome`, `Sources`, `Scope`, `Checks`, `Stop when`, and `Return` rather than routing boilerplate it does not need.
-- Unresolved architecture, product semantics, interfaces, data models, state flows, scope, safety, and final acceptance stay in the main thread.
+- Unresolved architecture, product and business semantics, interfaces, data models, state flows, scope, safety, and final acceptance stay in the main thread.
 - New children normally start without inherited parent history; new Reviewers always do. Name every factual source the child needs.
 - Parallel writers require disjoint, stable ownership. Keep one writer for each file, shared artifact, interactive session, or mutable-system boundary; stop or complete the old writer and state a handoff before ownership changes.
 - After a child error, timeout, or interruption, inspect existing artifacts and trace evidence before retrying. Recover usable work instead of automatically repeating it.
