@@ -6,86 +6,78 @@
   <img src="./assets/readme/agent-map.webp" width="100%" alt="Team Mode routes evidence gathering, bounded execution, and independent review while the main thread leads and accepts the final result.">
 </p>
 
-`team-mode` is a Codex Skill for coordinating three working agents across substantial development, research, analysis, planning, document, data, and content tasks. The main thread keeps unresolved decisions and performs final acceptance; subagents take on work that benefits from focused context, lower cost, safe parallelism, or independent judgment. A separate low-cost `default` guard rejects any spawn that omits `agent_type`.
+`team-mode` is a Codex Skill for coordinating three working agents across substantial development, research, analysis, planning, document, data, and content tasks. The main thread keeps unresolved decisions and final acceptance; subagents are used only when context isolation, bounded execution, safe parallelism, verification, or independent judgment has clear net value.
 
-It is a value-based routing guide, not a mandatory pipeline.
+It is a value-based routing guide, not a mandatory pipeline. A task being large or divisible is not, by itself, a reason to spawn more agents.
 
 ## The team
 
-- **Explorer（探索者）· Luna Medium · read-only** — gathers evidence across current web sources, documents, datasets, codebases, schemas, APIs, logs, and configuration.
-- **Executor（执行者）· Luna High · workspace-write** — completes clear, bounded work, including substantial bounded implementation, after scope, acceptance checks, and safety boundaries are clear.
-- **Reviewer（复审者）· Terra Medium · read-only** — independently checks stable code, reports, plans, analyses, data, and other artifacts from fresh context.
+- **Explorer · Luna Medium · read-only** — bounded search, tracing, and evidence compression. Medium is intentional: when discovery becomes architecture-defining, high-consequence, or too broad for reliable bounded evidence gathering, return the evidence and uncertainty to the main thread instead of mechanically raising Explorer effort.
+- **Executor · Luna Max · workspace-write** — implementation, fixes, and tests after scope, interfaces, data models, state flows, acceptance checks, and safety boundaries are fixed. Max is a deliberately conservative quality margin: reducing implementation omissions and rework matters more than tuning to the theoretical minimum reasoning level.
+- **Reviewer · Terra High · read-only** — fresh-context independent review of stable artifacts. High gives more reasoning margin for counterexamples, regressions, requirement coverage, and weak assumptions without making Reviewer a second architect.
 
-Every spawn must explicitly pass one of those three names through `agent_type`. `task_name` is only a label, and `default` is never a working role.
+A separate **default · Luna Low · read-only** dispatch guard rejects spawns that omit `agent_type`; it does no actual task work.
 
-Luna keeps discovery economical and gives bounded execution a higher reasoning margin. Terra provides fresh, independent review while the main thread retains architecture decisions and final acceptance.
-
-The TOML sandbox is a profile default, not a guaranteed isolation boundary: a live parent permission override can be reapplied to children. Use the task-scoped usage report to verify each session's effective sandbox.
+These defaults do not follow a mechanical “raise every role one level” rule. Use an already-sufficient level for ordinary evidence work, keep more margin where a role mutates artifacts or performs consequential independent judgment, and return decisions beyond a role's boundary to the main thread.
 
 ## How routing works
 
-- Use Team Mode when delegation, parallel work, context isolation, lower-cost execution, or independent review has clear value.
-- Team Mode may use no subagents at all. The main thread handles straightforward work when an agent would add more coordination than value.
-- Before every spawn, identify the material benefit and count briefing, inspection, waiting, and rework as coordination cost. Explicitly invoking Team Mode does not make a spawn mandatory.
-- Give every child a dispatch packet with `Outcome`, `Benefit`, `Sources`, `Scope`, `Checks`, `Stop when`, and `Return`; keep the slice in the main thread if the packet is incomplete or the gain does not exceed coordination cost.
-- When two or more independent slices are ready, prefer dispatching them in parallel. The team size is dynamic: there is no fixed number of agents and no required sequence.
-- Give non-trivial read-only discovery to `Explorer`; the main thread can wait instead of repeating the same work.
-- After discovery, the main thread chooses whether to continue directly or delegate.
-- Use `Executor` for localized or substantial bounded implementation once architecture, acceptance, and safety decisions are clear. Keep novel architecture, weak or visual verification, export/compiler behavior, and high-consequence security or rollback judgment in the main thread.
-- Use `Reviewer` only when fresh independent judgment has clear value. Start each new Reviewer with no inherited conversation and give it a concrete unresolved risk, exact evidence, checks already passed, and a bounded stop condition.
-- Keep fan-out in the main thread; children do not create descendants under standard Team Mode.
-- Parallelize only genuinely independent work and keep one writer per shared target.
-- After a child error or interruption, inspect shared artifacts before retrying; recover usable work instead of automatically repeating it.
-- The main thread inspects the actual sources, artifacts, changes, and verification before accepting delegated work.
+- Team Mode may use no subagents at all. Delegate only when expected benefit clearly exceeds briefing, inspection, waiting, rework, token, and conflict cost.
+- Substantial tasks get a brief decomposition pass, but “can be split” does not mean “should be delegated.” Even two independent slices are parallelized only when the gain is real.
+- Every child receives a self-contained dispatch packet with `Outcome`, `Benefit`, `Sources`, `Scope`, `Checks`, `Stop when`, and `Return`. `Benefit` must describe a real advantage, not boilerplate.
+- Unresolved architecture, product semantics, interfaces, data models, state flows, scope, safety, and final acceptance stay in the main thread.
+- New children normally start without inherited parent history; new Reviewers always do. Name every factual source the child needs.
+- Parallel writers require disjoint, stable ownership. Keep one writer for each file, shared artifact, interactive session, or mutable-system boundary; stop or complete the old writer and state a handoff before ownership changes.
+- After a child error, timeout, or interruption, inspect existing artifacts and trace evidence before retrying. Recover usable work instead of automatically repeating it.
+- The main thread inspects real sources, diffs, artifacts, and verification. A child's “completed” status is not final acceptance.
 
-Casual conversation, simple lookups, and tasks whose coordination cost exceeds the work stay in the main thread.
+## Independent review
+
+Use Reviewer according to **risk and verification difficulty**, not file count.
+
+Fresh review is usually valuable when shared APIs, state, persistence, concurrency, authorization, security, migration, compatibility, or cross-cutting behavior changed; verification is weak; a plausible false success would be costly; the diff is conceptually dense; implementation or tests exposed meaningful uncertainty; or the user explicitly asks for independent review.
+
+Use **one risk-focused Reviewer by default**. Add another only for a genuinely independent unresolved risk whose expected value exceeds the additional briefing and inspection cost. Crossing a fixed threshold such as “three changed files” does not automatically launch separate code-quality, performance, and reuse reviewers.
 
 ## Install
 
-Install the Skill:
+Install this fork's Skill:
 
 ```bash
-npx skills add oil-oil/codex-team-mode
+npx skills add jinhongel/codex-team-mode
 ```
 
-The three working Agent profiles and the default-on `default` dispatch guard are separate from the Skill. Copy the four TOML templates in [`agents/`](./agents) to `~/.codex/agents/` for personal use or `<repository>/.codex/agents/` for one project. Onboarding runs only for first setup, missing profiles, or explicit repair and verification requests.
+The three working Agent profiles and the `default` dispatch guard are separate from the Skill. Copy the four TOML templates in [`agents/`](./agents) to `~/.codex/agents/` for personal use or `<repository>/.codex/agents/` for one project.
 
-See [Custom Agent Profiles](./skills/team-mode/references/custom-agents.md) for exact filenames, safe installation, validation, repair, and model customization. Open a new Codex task or restart Codex if newly installed profiles do not appear immediately.
-
-After onboarding, Codex reports what was installed and how to disable only the guard. Disabling it is a recoverable move of `default.toml` outside the active `agents` directory; the three working profiles remain installed.
+See [Custom Agent Profiles](./skills/team-mode/references/custom-agents.md) for exact filenames, safe installation, runtime validation, permission caveats, and model customization. Open a new Codex task or restart Codex if newly installed profiles do not appear immediately.
 
 ## Use
 
 The Skill can trigger automatically for substantial tasks, or you can invoke it directly:
 
 ```text
-Use $team-mode for this task. Choose the smallest useful team, prefer parallel dispatch for independent slices, and keep unresolved decisions and final acceptance in the main thread.
+Use $team-mode for this task. Delegate only when the benefit clearly exceeds coordination cost, and keep unresolved decisions and final acceptance in the main thread.
 ```
 
-You do not need to name every agent yourself. The main thread chooses the smallest useful team, adapts it to the task's value, and remains responsible for the combined result.
+You do not need to name every agent yourself. The main thread decides whether to delegate, selects roles, controls concurrency, and remains responsible for the combined result.
 
 ## Customize
 
-You can change `model` and `model_reasoning_effort` in `agents/*.toml`. Preserve the role boundaries: Explorer and Reviewer stay read-only, mutation permissions remain with Executor, new reviews use fresh context, and final acceptance stays with the main thread.
+You can change `model` and `model_reasoning_effort` in `agents/*.toml`, but do not mechanically minimize token use and do not mechanically raise every role just because a higher setting exists. Judge representative tasks by correctness, omissions, rework, verification burden, and usage. Keep Explorer and Reviewer read-only, mutation permissions with Executor, new reviews fresh, and final decisions in the main thread.
 
 ## Repository layout
 
 ```text
 codex-team-mode/
 ├── agents/                  # Three working profiles plus one dispatch guard
-├── assets/readme/           # README visuals and editable source layers
+├── assets/readme/           # README visuals
 ├── skills/team-mode/        # Installable Skill
-│   ├── agents/openai.yaml
-│   ├── references/          # Profile setup and evaluation guidance
+│   ├── references/          # Setup, evaluation, and testing guidance
 │   ├── scripts/usage_by_model.py
 │   └── SKILL.md
 ├── tests/                   # Agent, routing, and usage regression tests
 ├── LICENSE
 └── README.md
 ```
-
-<p align="center">
-  <a href="https://github.com/oil-oil/beautify-github-readme"><img src="./assets/readme/made-with-beautify.svg" width="300" alt="README made with beautify-github-readme"></a>
-</p>
 
 MIT License
