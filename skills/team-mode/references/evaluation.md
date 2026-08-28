@@ -44,7 +44,7 @@ When a child fails, inspect the shared target before counting the attempt as los
 ## Interpret The Roles
 
 - `Explorer` defaults to Luna Medium. Keep it there when bounded search, tracing, and evidence compression are reliable. Do not mechanically raise it for ordinary discovery. If the task becomes architecture-defining, high-consequence, or too broad for bounded evidence gathering, return the judgment to the main thread rather than turning Explorer into a substitute architect.
-- `Executor` defaults to Luna Max. This is intentionally conservative for mutable implementation: low rework and implementation completeness are prioritized over tuning to the minimum sufficient effort. Consider lowering it only when repeated representative tasks show High preserves the same quality and verification profile with materially less waste.
+- `Executor` defaults to Luna xHigh. This deliberately gives mutable implementation more reasoning margin than High while stopping short of Max as a universal default. Consider Max only for genuinely hardest quality-first bounded work when representative evidence shows xHigh is insufficient; consider High only when repeated representative tasks preserve the same completeness and verification profile with materially less waste.
 - `Reviewer` defaults to Terra High. This gives independent review additional reasoning margin for counterexamples, regressions, requirement coverage, and weak assumptions. Consider Medium only when repeated review tasks show equivalent finding quality and coverage.
 - The optional `default` guard uses Luna Low because it performs no work beyond refusing invalid dispatch. Raising its effort does not provide a meaningful quality margin.
 
