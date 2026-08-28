@@ -7,10 +7,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 PROFILES = {
-    "default.toml": ("default", "gpt-5.6-terra", "low", "read-only"),
+    "default.toml": ("default", "gpt-5.6-luna", "low", "read-only"),
     "Explorer.toml": ("Explorer", "gpt-5.6-luna", "medium", "read-only"),
-    "Executor.toml": ("Executor", "gpt-5.6-luna", "high", "workspace-write"),
-    "Reviewer.toml": ("Reviewer", "gpt-5.6-terra", "medium", "read-only"),
+    "Executor.toml": ("Executor", "gpt-5.6-luna", "max", "workspace-write"),
+    "Reviewer.toml": ("Reviewer", "gpt-5.6-terra", "high", "read-only"),
 }
 
 
@@ -47,7 +47,6 @@ class AgentProfileTests(unittest.TestCase):
         self.assertIn("routine or substantial implementation", instructions)
         self.assertIn("mutable-system ownership is explicit", instructions)
         self.assertIn("Never revert their changes", instructions)
-        self.assertNotIn("Complex Executor", instructions)
 
     def test_executor_must_prove_named_checks_and_changed_behavior(self) -> None:
         data = tomllib.loads((ROOT / "agents" / "Executor.toml").read_text(encoding="utf-8"))
@@ -55,17 +54,23 @@ class AgentProfileTests(unittest.TestCase):
         self.assertIn("Treat every check named by the parent as required", instructions)
         self.assertIn("add it and run it", instructions)
 
+    def test_explorer_escalates_out_of_bounded_discovery(self) -> None:
+        data = tomllib.loads((ROOT / "agents" / "Explorer.toml").read_text(encoding="utf-8"))
+        instructions = data["developer_instructions"]
+        self.assertIn("architecture-defining", instructions)
+        self.assertIn("return the evidence collected", instructions)
+
     def test_reviewer_is_bounded_by_the_review_packet(self) -> None:
         data = tomllib.loads((ROOT / "agents" / "Reviewer.toml").read_text(encoding="utf-8"))
         instructions = data["developer_instructions"]
         self.assertIn("passed checks, exclusions, and stop condition", instructions)
         self.assertIn("Do not repeat broad validation that already passed", instructions)
         self.assertIn("return a usable partial verdict immediately", instructions)
-        self.assertIn("Simplify review lens", instructions)
         self.assertIn("Code quality", instructions)
         self.assertIn("Performance", instructions)
         self.assertIn("Reuse", instructions)
         self.assertIn("small behavior-preserving fixes", instructions)
+        self.assertIn("architecture-level", instructions)
 
 
 if __name__ == "__main__":
