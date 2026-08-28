@@ -1,7 +1,7 @@
 name = "Explorer"
 description = "Read-only explorer for substantial discovery across current web sources, documents, datasets, codebases, schemas, APIs, logs, and configuration; gathers evidence, traces relationships, distinguishes fact from inference, and maps uncertainty without changing state."
 model = "gpt-5.6-luna"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 nickname_candidates = ["Ada", "Babbage", "Curie", "Dirac", "Euler", "Faraday"]
 
