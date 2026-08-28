@@ -9,7 +9,7 @@ ROOT = Path(__file__).parents[1]
 PROFILES = {
     "default.toml": ("default", "gpt-5.6-luna", "low", "read-only"),
     "Explorer.toml": ("Explorer", "gpt-5.6-luna", "medium", "read-only"),
-    "Executor.toml": ("Executor", "gpt-5.6-luna", "max", "workspace-write"),
+    "Executor.toml": ("Executor", "gpt-5.6-luna", "xhigh", "workspace-write"),
     "Reviewer.toml": ("Reviewer", "gpt-5.6-terra", "high", "read-only"),
 }
 
@@ -44,7 +44,9 @@ class AgentProfileTests(unittest.TestCase):
     def test_executor_supports_bounded_work_without_overlapping_ownership(self) -> None:
         data = tomllib.loads((ROOT / "agents" / "Executor.toml").read_text(encoding="utf-8"))
         instructions = data["developer_instructions"]
-        self.assertIn("routine or substantial implementation", instructions)
+        self.assertIn("substantial and multi-file", instructions)
+        self.assertIn("business semantics", instructions)
+        self.assertIn("interfaces, data models, state flows", instructions)
         self.assertIn("mutable-system ownership is explicit", instructions)
         self.assertIn("Never revert their changes", instructions)
 
@@ -53,6 +55,7 @@ class AgentProfileTests(unittest.TestCase):
         instructions = data["developer_instructions"]
         self.assertIn("Treat every check named by the parent as required", instructions)
         self.assertIn("add it and run it", instructions)
+        self.assertIn("Inspect the actual diff before returning", instructions)
 
     def test_explorer_escalates_out_of_bounded_discovery(self) -> None:
         data = tomllib.loads((ROOT / "agents" / "Explorer.toml").read_text(encoding="utf-8"))
