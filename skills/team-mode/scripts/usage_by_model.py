@@ -13,12 +13,14 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-RATE_DATE = "2026-07-18"
-RATE_SOURCE = "https://help.openai.com/en/articles/20001106-codex-rate-card"
+# Static credit-rate snapshot used only for diagnostics. Actual plan usage, Fast
+# mode, promotions, account-specific metering, and future rates may differ.
+RATE_DATE = "2026-08-28"
+RATE_SOURCE = "https://help.openai.com/en/articles/11481834"
 RATES = {
-    "gpt-5.6-luna": {"input": 25.0, "cached": 2.5, "output": 150.0},
-    "gpt-5.6-terra": {"input": 62.5, "cached": 6.25, "output": 375.0},
-    "gpt-5.6-sol": {"input": 125.0, "cached": 12.5, "output": 750.0},
+    "gpt-5.6-luna": {"input": 5.0, "cached": 0.5, "output": 30.0},
+    "gpt-5.6-terra": {"input": 50.0, "cached": 5.0, "output": 300.0},
+    "gpt-5.6-sol": {"input": 100.0, "cached": 10.0, "output": 500.0},
 }
 
 
@@ -29,10 +31,18 @@ def default_sessions_root() -> Path:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Report locally retained Codex token usage and estimated Standard credits by model."
+        description=(
+            "Report locally retained Codex token usage and estimate credits from "
+            "the configured static base-rate snapshot."
+        )
     )
     period = parser.add_mutually_exclusive_group()
-    period.add_argument("--days", type=int, default=1, help="Include the last N local calendar days (default: 1).")
+    period.add_argument(
+        "--days",
+        type=int,
+        default=1,
+        help="Include the last N local calendar days (default: 1).",
+    )
     period.add_argument("--all", action="store_true", help="Include every retained local session.")
     period.add_argument(
         "--task-id",
@@ -42,7 +52,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--json", action="store_true", help="Emit machine-readable JSON.")
     parser.add_argument("--by-agent", action="store_true", help="Also group usage by custom Agent role.")
     parser.add_argument("--by-session", action="store_true", help="Also show each root or subagent session separately.")
-    parser.add_argument("--sessions-root", type=Path, default=default_sessions_root(), help="Override the sessions directory.")
+    parser.add_argument(
+        "--sessions-root",
+        type=Path,
+        default=default_sessions_root(),
+        help="Override the sessions directory.",
+    )
     args = parser.parse_args()
     if not args.all and args.days < 1:
         parser.error("--days must be at least 1")
@@ -150,8 +165,10 @@ def discover_traces(root: Path, cutoff: date | None) -> tuple[list[dict[str, Any
         malformed += item_malformed
         if item:
             metadata.append(item)
+
     resolve_trace_tasks(metadata)
     by_session = {item["session_id"]: item for item in metadata}
+
     def depth(item: dict[str, Any]) -> int:
         current = item
         seen: set[str] = set()
@@ -166,6 +183,7 @@ def discover_traces(root: Path, cutoff: date | None) -> tuple[list[dict[str, Any
                 return value
             value += 1
             current = by_session[parent]
+
     for item in metadata:
         item["depth"] = depth(item)
     return metadata, file_count, malformed
@@ -294,29 +312,34 @@ def scan(
                     usage = ((payload.get("info") or {}).get("last_token_usage"))
                     if usage:
                         add_usage(usage_by_segment[(model, effort)], usage)
+
         role = trace["agent_role"]
         started = min(timestamps) if timestamps else None
         ended = max(timestamps) if timestamps else None
         terminal = last_terminal or "incomplete"
         if not usage_by_segment and model:
             usage_by_segment[(model, effort)]
+
         for (session_model, session_effort), usage in usage_by_segment.items():
             merge_usage(by_model[session_model], usage)
             merge_usage(by_agent[f"{role} · {session_model}"], usage)
-            sessions.append({
-                **trace,
-                "model": session_model,
-                "effort": session_effort,
-                "usage": usage,
-                "started_at": started.isoformat().replace("+00:00", "Z") if started else None,
-                "ended_at": ended.isoformat().replace("+00:00", "Z") if ended else None,
-                "elapsed_seconds": (ended - started).total_seconds() if started and ended else None,
-                "terminal_status": terminal,
-                "final_report_present": has_complete,
-                "interrupted_count": interrupted_count,
-                "effective_sandbox": sorted(sandboxes),
-                "approval_policy": sorted(approvals),
-            })
+            sessions.append(
+                {
+                    **trace,
+                    "model": session_model,
+                    "effort": session_effort,
+                    "usage": usage,
+                    "started_at": started.isoformat().replace("+00:00", "Z") if started else None,
+                    "ended_at": ended.isoformat().replace("+00:00", "Z") if ended else None,
+                    "elapsed_seconds": (ended - started).total_seconds() if started and ended else None,
+                    "terminal_status": terminal,
+                    "final_report_present": has_complete,
+                    "interrupted_count": interrupted_count,
+                    "effective_sandbox": sorted(sandboxes),
+                    "approval_policy": sorted(approvals),
+                }
+            )
+
     return (
         dict(by_model),
         dict(by_agent),
@@ -350,6 +373,8 @@ def usage_row(name: str, usage: dict[str, int]) -> dict[str, Any]:
         "uncached_input_tokens": uncached,
         "output_tokens": usage["output"],
         "reasoning_output_tokens": usage["reasoning"],
+        # Keep the existing JSON field names for compatibility. These values are
+        # estimates from the configured static base-rate snapshot, not bills.
         "estimated_standard_credit_breakdown": credit_breakdown,
         "estimated_standard_credits": credits,
         "effective_processed_tokens_per_credit": total / credits if credits else None,
@@ -359,19 +384,21 @@ def usage_row(name: str, usage: dict[str, int]) -> dict[str, Any]:
 def rate_card_rows() -> list[dict[str, Any]]:
     result: list[dict[str, Any]] = []
     for model, rate in RATES.items():
-        result.append({
-            "model": model,
-            "credits_per_million_tokens": {
-                "uncached_input": rate["input"],
-                "cached_input": rate["cached"],
-                "output": rate["output"],
-            },
-            "tokens_per_credit": {
-                "uncached_input": 1_000_000 / rate["input"],
-                "cached_input": 1_000_000 / rate["cached"],
-                "output": 1_000_000 / rate["output"],
-            },
-        })
+        result.append(
+            {
+                "model": model,
+                "credits_per_million_tokens": {
+                    "uncached_input": rate["input"],
+                    "cached_input": rate["cached"],
+                    "output": rate["output"],
+                },
+                "tokens_per_credit": {
+                    "uncached_input": 1_000_000 / rate["input"],
+                    "cached_input": 1_000_000 / rate["cached"],
+                    "output": 1_000_000 / rate["output"],
+                },
+            }
+        )
     return result
 
 
@@ -396,7 +423,9 @@ def add_credit_shares(result: list[dict[str, Any]]) -> list[dict[str, Any]]:
     known_total = sum(row["estimated_standard_credits"] or 0 for row in result)
     for row in result:
         credits = row["estimated_standard_credits"]
-        row["known_credit_share_percent"] = (credits / known_total * 100) if credits is not None and known_total else None
+        row["known_credit_share_percent"] = (
+            credits / known_total * 100 if credits is not None and known_total else None
+        )
     return result
 
 
@@ -409,26 +438,28 @@ def session_rows(sessions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for session in sessions:
         role = session["agent_role"]
         model = session["model"]
-        result.append({
-            **usage_row(f"{role} · {model}", session["usage"]),
-            "session_id": session["session_id"],
-            "task_id": session["task_id"],
-            "parent_thread_id": session["parent_thread_id"],
-            "agent_role": role,
-            "agent_path": session["agent_path"],
-            "model": model,
-            "effort": session["effort"],
-            "cwd": session["cwd"],
-            "started_at": session.get("started_at"),
-            "ended_at": session.get("ended_at"),
-            "elapsed_seconds": session.get("elapsed_seconds"),
-            "terminal_status": session.get("terminal_status", "incomplete"),
-            "final_report_present": session.get("final_report_present", False),
-            "interrupted_count": session.get("interrupted_count", 0),
-            "effective_sandbox": session.get("effective_sandbox", []),
-            "approval_policy": session.get("approval_policy", []),
-            "depth": session.get("depth", 0),
-        })
+        result.append(
+            {
+                **usage_row(f"{role} · {model}", session["usage"]),
+                "session_id": session["session_id"],
+                "task_id": session["task_id"],
+                "parent_thread_id": session["parent_thread_id"],
+                "agent_role": role,
+                "agent_path": session["agent_path"],
+                "model": model,
+                "effort": session["effort"],
+                "cwd": session["cwd"],
+                "started_at": session.get("started_at"),
+                "ended_at": session.get("ended_at"),
+                "elapsed_seconds": session.get("elapsed_seconds"),
+                "terminal_status": session.get("terminal_status", "incomplete"),
+                "final_report_present": session.get("final_report_present", False),
+                "interrupted_count": session.get("interrupted_count", 0),
+                "effective_sandbox": session.get("effective_sandbox", []),
+                "approval_policy": session.get("approval_policy", []),
+                "depth": session.get("depth", 0),
+            }
+        )
     result.sort(key=lambda row: (row["agent_path"] or "/root", row["session_id"], row["model"]))
     return add_credit_shares(result)
 
@@ -446,7 +477,9 @@ def print_table(title: str, data: list[dict[str, Any]]) -> None:
         tokens_per_credit = row["effective_processed_tokens_per_credit"]
         credits_text = f"{credits:,.2f}" if credits is not None else "n/a"
         share_text = f"{share:.2f}%" if share is not None else "n/a"
-        tokens_per_credit_text = f"{tokens_per_credit:,.0f}" if tokens_per_credit is not None else "n/a"
+        tokens_per_credit_text = (
+            f"{tokens_per_credit:,.0f}" if tokens_per_credit is not None else "n/a"
+        )
         print(
             f"{row['name']:<34} "
             f"{row['total_processed_tokens']:>14,} "
@@ -498,7 +531,7 @@ def print_session_table(data: list[dict[str, Any]]) -> None:
 
 
 def print_rate_card() -> None:
-    print("Standard rate card · credits per 1M tokens / tokens per credit")
+    print("Configured credit-rate snapshot · credits per 1M tokens / tokens per credit")
     print(
         f"{'Model':<18} {'Uncached cr':>11} {'Cached cr':>10} {'Output cr':>10} "
         f"{'Uncached tok/cr':>15} {'Cached tok/cr':>15} {'Output tok/cr':>14}"
@@ -532,51 +565,73 @@ def main() -> int:
         malformed,
         resolved_task_id,
     ) = scan(root, cutoff, args.task_id)
+
     if args.task_id and not included_count:
         print(f"Task not found in retained local sessions: {args.task_id}", file=sys.stderr)
         return 2
+
     model_rows = rows(by_model)
     agent_rows = rows(by_agent) if args.by_agent else []
     all_session_details = session_rows(sessions)
     detailed_sessions = all_session_details if args.by_session else []
+
     if resolved_task_id:
         period = f"task {resolved_task_id}"
     else:
-        period = "all retained sessions" if cutoff is None else f"{cutoff.isoformat()} through {date.today().isoformat()}"
+        period = (
+            "all retained sessions"
+            if cutoff is None
+            else f"{cutoff.isoformat()} through {date.today().isoformat()}"
+        )
+
     limitations = [
         "Local retained sessions only; ephemeral and unavailable remote sessions are excluded.",
-        "Credits use configured Standard rates and do not detect mixed Fast usage.",
-        "Account limits and resets remain authoritative in Codex /usage.",
+        f"Credit estimates use a static base-rate snapshot verified {RATE_DATE}; check the current official rate card before billing decisions.",
+        "Included-plan allowances are not converted into purchased credits, and account-specific or promotional metering may differ.",
+        "Fast mode is not detected and may use different credit rates.",
+        "Account limits and actual metering remain authoritative in Codex /usage.",
         "Runtime fields come from local trace events; completed means only that the session has task_complete, not that artifact quality is assured.",
     ]
-    status_counts = {status: sum(1 for row in all_session_details if row.get("terminal_status") == status)
-                     for status in ("completed", "interrupted", "incomplete")}
+
+    status_counts = {
+        status: sum(1 for row in all_session_details if row.get("terminal_status") == status)
+        for status in ("completed", "interrupted", "incomplete")
+    }
     max_depth = max((row.get("depth", 0) for row in all_session_details), default=0)
 
     if args.json:
-        print(json.dumps({
-            "period": period,
-            "task_id": resolved_task_id,
-            "requested_task_or_session_id": args.task_id,
-            "sessions_root": str(root),
-            "files_scanned": file_count,
-            "session_files_included": included_count,
-            "malformed_lines_skipped": malformed,
-            "credit_rates_as_of": RATE_DATE,
-            "credit_rate_source": RATE_SOURCE,
-            "credit_rates": rate_card_rows(),
-            "summary": usage_summary(model_rows),
-            "models": model_rows,
-            "agents": agent_rows,
-            "sessions": detailed_sessions,
-            "session_status_counts": status_counts,
-            "max_subagent_depth": max_depth,
-            "limitations": limitations,
-        }, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {
+                    "period": period,
+                    "task_id": resolved_task_id,
+                    "requested_task_or_session_id": args.task_id,
+                    "sessions_root": str(root),
+                    "files_scanned": file_count,
+                    "session_files_included": included_count,
+                    "malformed_lines_skipped": malformed,
+                    "credit_rates_as_of": RATE_DATE,
+                    "credit_rate_source": RATE_SOURCE,
+                    "credit_rates": rate_card_rows(),
+                    "summary": usage_summary(model_rows),
+                    "models": model_rows,
+                    "agents": agent_rows,
+                    "sessions": detailed_sessions,
+                    "session_status_counts": status_counts,
+                    "max_subagent_depth": max_depth,
+                    "limitations": limitations,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return 0
 
     print(f"Codex local usage · {period}")
-    print(f"Scanned {file_count} session files · included {included_count} · Standard credit rates as of {RATE_DATE}")
+    print(
+        f"Scanned {file_count} session files · included {included_count} · "
+        f"credit-rate snapshot verified {RATE_DATE}"
+    )
     print("Processed tokens = input (cached included) + output; reasoning is already included in output.")
     print()
     print_table("By model", model_rows)
@@ -586,8 +641,8 @@ def main() -> int:
         print_session_table(detailed_sessions)
     print_rate_card()
     print(f"Rate source: {RATE_SOURCE}")
-    print("* Tok/Credit is the observed processed-token ratio for that row, not a universal conversion. ")
-    print("* Estimated Standard credits. " + " ".join(limitations))
+    print("* Tok/Credit is the observed processed-token ratio for that row, not a universal conversion.")
+    print("* Credit values are estimates from a static rate snapshot. " + " ".join(limitations))
     return 0
 
 

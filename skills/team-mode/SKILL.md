@@ -1,6 +1,6 @@
 ---
 name: team-mode
-description: Proactively decompose and coordinate substantial development, research, analysis, planning, document, data, and content work with the smallest useful set of custom subagents. Use when delegation, context isolation, bounded execution, safe parallelism, or fresh review has clear value. Keep unresolved decisions and final acceptance in the main thread. Do not use for casual or simple tasks.
+description: Coordinate substantial development, research, analysis, planning, document, data, and content work with focused custom subagents only when delegation has clear net value. Use for bounded execution, context isolation, useful parallelism, evidence gathering, or fresh independent review when those benefits outweigh coordination cost. Do not activate merely because a task is large or divisible. Keep unresolved decisions and final acceptance in the main thread.
 ---
 
 # Team Mode
@@ -11,29 +11,23 @@ Team Mode is a routing guide, not a mandatory pipeline. The main thread owns unr
 
 ## Dispatch Gate
 
-Every `spawn_agent` call must explicitly pass `agent_type` as exactly one of `Explorer`, `Executor`, or `Reviewer`.
+Every Team Mode `spawn_agent` call must explicitly pass `agent_type` as exactly one of `Explorer`, `Executor`, or `Reviewer`.
 
-- Never omit `agent_type` and never pass `default`. The `default` profile is a fail-closed dispatch guard, not a working Agent.
+- Never omit `agent_type` during normal Team Mode routing and never use `default` as a working role.
 - Never use `task_name` to select a profile; it only labels the child thread.
-- If the intended custom profile is unavailable, keep the work in the main thread or repair the profiles. Do not silently use a generic child.
-- If a child returns the dispatch-guard message or its trace shows `default` / `subagent/unknown`, reject its output and respawn only after selecting the intended custom profile explicitly.
+- If an intended working profile is unavailable, keep the work in the main thread or repair the profiles. Do not silently substitute a generic child.
+- An optional `default` profile may be installed as a fail-closed dispatch guard. Team Mode does not require that guard. If it is installed and a child returns the guard message, reject that child output and respawn only after selecting the intended working profile explicitly.
 
-Read [references/custom-agents.md](references/custom-agents.md) only when installing, repairing, or verifying the three working profiles and the `default` guard. The controlled onboarding self-test described there is the only time Team Mode deliberately omits `agent_type`.
-
-## One-Time Onboarding
-
-Do not inspect Agent files, load onboarding instructions, or repeat setup explanations during normal Team Mode routing. Treat the active `spawn_agent.agent_type` choices and descriptions as runtime readiness evidence. When all three working profiles are available and `default` is described as the dispatch guard, skip onboarding without mentioning it.
-
-Only read [references/custom-agents.md](references/custom-agents.md) and start onboarding when a required profile or guard is unavailable, or when the user explicitly asks to install, repair, verify, move, disable, or customize them. Get authorization before writing personal or project configuration.
+Read [references/custom-agents.md](references/custom-agents.md) only when installing, repairing, verifying, or customizing profiles. Normal routing should not repeatedly inspect profile files or onboarding instructions.
 
 ## Required Rules
 
-- When this Skill activates, immediately send one brief commentary update in the user's language, prefixed with `👾`. For Chinese, say `👾 已开启小队模式。`; translate naturally for other languages. Announce it once per task, not before every subagent call.
 - Activating Team Mode does not require spawning any subagent. Keep work in the main thread whenever delegation does not provide a clear net benefit.
+- Do not emit ritual mode announcements merely because the Skill was selected. If a meaningful child dispatch will occur and a status update would help the user understand the work, give at most one brief update before the first dispatch.
 - For substantial tasks, perform a brief decomposition pass. Decomposition is analysis, not a requirement to delegate.
 - Dispatch independent slices in parallel only when the combined wall-clock, context, isolation, or verification gain clearly exceeds briefing, inspection, waiting, rework, token, and conflict cost. Merely having two independent slices is not enough.
 - After unresolved architecture, product, editorial, safety, scope, interface, data-model, state-flow, and acceptance decisions are fixed, identify bounded, independently verifiable implementation slices. Delegate useful slices to `Executor`; keep unresolved or weakly verifiable decisions in the main thread.
-- Before each spawn, identify one material benefit: useful parallelism, context isolation, bounded execution, evidence gathering, or independent judgment. If that benefit is marginal or speculative, keep the slice in the main thread.
+- Before each spawn, identify one material `Benefit`: useful parallelism, context isolation, bounded execution, evidence gathering, or independent judgment. `Benefit` is a parent-side routing gate; do not pad the child's task packet with boilerplate merely to repeat it.
 - Keep all routing and fan-out in the main thread. Under standard Team Mode, children never spawn descendants; they return evidence, artifacts, or blockers to the parent.
 - Use `fork_turns="none"` by default for new subagents and always for a new `Reviewer`. Reuse an existing child only when continuity of the same bounded workstream is more valuable than fresh context.
 - Keep unresolved user intent, product, editorial, architecture, interface, data-model, state-flow, safety, scope, and acceptance decisions, plus final acceptance, in the main thread.
@@ -46,24 +40,23 @@ When the user asks to evaluate Team Mode itself, compare models or reasoning eff
 
 ## Dispatch Contract
 
-Before every spawn, make the brief self-contained with these labeled fields:
+Every new child brief must be compact and self-contained. Include these labeled fields unless the tool surface already carries the same information unambiguously:
 
 - `Outcome`: the independently finishable result the child must return.
-- `Benefit`: the material advantage over keeping this slice in the main thread.
 - `Sources`: every path, URL, dataset, or raw artifact required for factual work.
 - `Scope`: allowed reads or writes, ownership, exclusions, and external-action authority.
 - `Checks`: acceptance criteria and validation the child owns.
 - `Stop when`: the bounded completion, blocker, or evidence threshold that ends the turn.
 - `Return`: the concise report or artifact format expected by the parent.
 
-Do not spawn while `Outcome`, required `Sources`, `Scope`, `Checks`, or `Stop when` is missing. `Benefit` must be real rather than boilerplate; if the parent cannot name a meaningful benefit, keep the slice in the main thread. Keep a slice in the main thread when it is not independently finishable.
+Do not spawn while required `Outcome`, `Sources`, `Scope`, `Checks`, or `Stop when` is missing, or while the slice is not independently finishable. The parent must already have identified a real `Benefit`; if that benefit is marginal or speculative, keep the slice in the main thread.
 
-For a `Reviewer`, also name one concrete `Unresolved risk`, the exact `Evidence` to inspect, `Checks already passed`, and `Do not repeat`. Do not tell the Reviewer the prior debate, author, suspected findings, or desired verdict. Require a usable partial verdict if the stop condition arrives before exhaustive review.
+For a `Reviewer`, also provide one neutrally framed `Unresolved risk`, the exact `Evidence` to inspect, `Checks already passed`, and `Do not repeat`. Frame the risk as a question to test, not as a suspected defect or desired verdict. Do not tell the Reviewer the prior debate, author, preferred conclusion, or expected findings. Require a usable partial verdict if the stop condition arrives before exhaustive review.
 
 ## Route The Work
 
 - `Explorer`（Luna Medium）: use for non-trivial read-only discovery that benefits from isolated context. Give it exact sources and a bounded evidence question. Medium is intentional because most Explorer work is search, tracing, and evidence compression rather than final design judgment.
-- `Executor`（Luna Max）: use for localized or substantial bounded execution only after the main thread fixes unresolved architecture, product, safety, scope, interfaces, data models, state flows, and acceptance criteria. Max is intentionally conservative: implementation quality and low rework take priority over minimizing reasoning usage.
+- `Executor`（Luna xHigh）: use for localized or substantial bounded execution only after the main thread fixes unresolved architecture, product and business semantics, safety, scope, interfaces, data models, state flows, and acceptance criteria. xHigh deliberately leaves more reasoning margin than High for mutable implementation without treating every bounded task as a Max-level hardest-case workload.
 - `Reviewer`（Terra High）: use fresh read-only context when independent review has clear value. High gives extra reasoning margin for counterexamples, regression risk, requirement coverage, and weak assumptions without turning the Reviewer into a second main architect.
 - Main thread: keep novel architecture, ambiguous requirements, high-consequence security or rollback judgment, weak or subjective verification, broad cross-system decisions, and any task whose correct outcome cannot be bounded reliably for a child.
 
@@ -77,13 +70,13 @@ A fresh review is usually valuable when one or more of these applies:
 
 - shared APIs, state, persistence, concurrency, authorization, security, migration, compatibility, or other cross-cutting behavior changed;
 - the change is difficult to verify deterministically or a plausible false success would be costly;
-- the diff is conceptually dense enough that the main thread could reasonably miss regressions, unsupported assumptions, dead code, or missed reuse;
+- the diff is conceptually dense enough that the main thread could reasonably miss regressions, unsupported assumptions, unnecessary complexity, or missed reuse;
 - implementation or tests exposed meaningful uncertainty;
 - the user explicitly asks for independent review, cleanup, simplification, or high confidence.
 
-Use one risk-focused Reviewer by default. Add another fresh Reviewer only when there is a genuinely independent unresolved risk or review lens whose expected value exceeds the additional briefing and inspection cost. Do not launch separate code-quality, performance, and reuse reviewers merely because a change crossed a file-count threshold.
+Use one risk-focused Reviewer by default. Add another fresh Reviewer only when there is a genuinely independent unresolved risk whose expected value exceeds the additional briefing and inspection cost. Do not launch separate code-quality, performance, and reuse reviewers merely because a change crossed a file-count threshold.
 
-When code quality, performance, or reuse is the actual unresolved risk, assign that lens explicitly. Reviewers report severity-ordered findings with paths, evidence, and the smallest behavior-preserving repair direction. They do not edit, format, commit, or repeat checks that already passed. The main thread validates findings, applies or delegates accepted repairs, and reruns relevant checks.
+When code quality, performance, or reuse is the actual unresolved risk, state that neutral review question explicitly. Reviewers report severity-ordered findings with paths, evidence, and the smallest safe repair direction consistent with the requirements. They do not edit, format, commit, or repeat checks that already passed. The main thread validates findings, applies or delegates accepted repairs, and reruns relevant checks.
 
 ## Coordinate The Work
 
@@ -113,7 +106,9 @@ When a task depends on live UI, browser, device, or other interactive state that
 
 ## Inspect Local Usage
 
-When the user asks for model or subagent consumption, run `python3 scripts/usage_by_model.py`. For the active task use `--task-id current --by-agent --by-session`; for broader history use `--days N` or `--all`, with `--json` when structured output helps. Report processed tokens plus uncached input, cached input, output, reasoning output, and estimated credits. Treat this as diagnostic evidence, not a mandate to tune every role to the lowest possible effort. Prefer changing a profile only when repeated task-scoped evidence shows the current setting is wasteful or insufficient.
+When the user asks for model or subagent consumption, resolve `scripts/usage_by_model.py` relative to this Skill directory rather than assuming the project working directory contains that path. Run it with the environment's Python executable (`python` or `python3`). For the active task use `--task-id current --by-agent --by-session`; for broader history use `--days N` or `--all`, with `--json` when structured output helps.
+
+Report processed tokens plus uncached input, cached input, output, reasoning output, and estimated credits. Credit estimates use a static rate-card snapshot and are diagnostic only: included-plan limits, account-specific metering, Fast mode, promotions, and future rate changes may differ. Codex `/usage` and the current official rate card remain authoritative. Do not tune every role to the lowest possible effort merely because a credit estimate is available.
 
 ## Guardrails
 

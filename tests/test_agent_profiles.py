@@ -9,7 +9,7 @@ ROOT = Path(__file__).parents[1]
 PROFILES = {
     "default.toml": ("default", "gpt-5.6-luna", "low", "read-only"),
     "Explorer.toml": ("Explorer", "gpt-5.6-luna", "medium", "read-only"),
-    "Executor.toml": ("Executor", "gpt-5.6-luna", "max", "workspace-write"),
+    "Executor.toml": ("Executor", "gpt-5.6-luna", "xhigh", "workspace-write"),
     "Reviewer.toml": ("Reviewer", "gpt-5.6-terra", "high", "read-only"),
 }
 
@@ -41,10 +41,12 @@ class AgentProfileTests(unittest.TestCase):
         self.assertIn("the delegated task was not executed", instructions)
         self.assertIn("agent_type was omitted or set to default", instructions)
 
-    def test_executor_supports_substantial_bounded_work_without_overlapping_ownership(self) -> None:
+    def test_executor_supports_bounded_work_without_overlapping_ownership(self) -> None:
         data = tomllib.loads((ROOT / "agents" / "Executor.toml").read_text(encoding="utf-8"))
         instructions = data["developer_instructions"]
-        self.assertIn("routine or substantial implementation", instructions)
+        self.assertIn("substantial and multi-file", instructions)
+        self.assertIn("business semantics", instructions)
+        self.assertIn("interfaces, data models, state flows", instructions)
         self.assertIn("mutable-system ownership is explicit", instructions)
         self.assertIn("Never revert their changes", instructions)
 
@@ -53,6 +55,7 @@ class AgentProfileTests(unittest.TestCase):
         instructions = data["developer_instructions"]
         self.assertIn("Treat every check named by the parent as required", instructions)
         self.assertIn("add it and run it", instructions)
+        self.assertIn("Inspect the actual diff before returning", instructions)
 
     def test_explorer_escalates_out_of_bounded_discovery(self) -> None:
         data = tomllib.loads((ROOT / "agents" / "Explorer.toml").read_text(encoding="utf-8"))
@@ -60,17 +63,16 @@ class AgentProfileTests(unittest.TestCase):
         self.assertIn("architecture-defining", instructions)
         self.assertIn("return the evidence collected", instructions)
 
-    def test_reviewer_is_bounded_by_the_review_packet(self) -> None:
+    def test_reviewer_is_neutral_bounded_and_evidence_driven(self) -> None:
         data = tomllib.loads((ROOT / "agents" / "Reviewer.toml").read_text(encoding="utf-8"))
         instructions = data["developer_instructions"]
-        self.assertIn("passed checks, exclusions, and stop condition", instructions)
+        self.assertIn("neutral question to test", instructions)
+        self.assertIn("Expand narrowly only when necessary", instructions)
         self.assertIn("Do not repeat broad validation that already passed", instructions)
+        self.assertIn("smallest safe repair direction consistent with the requirements", instructions)
         self.assertIn("return a usable partial verdict immediately", instructions)
-        self.assertIn("Code quality", instructions)
-        self.assertIn("Performance", instructions)
-        self.assertIn("Reuse", instructions)
-        self.assertIn("small behavior-preserving fixes", instructions)
         self.assertIn("architecture-level", instructions)
+        self.assertNotIn("Simplify review lens", instructions)
 
 
 if __name__ == "__main__":

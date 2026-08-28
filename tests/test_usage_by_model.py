@@ -45,7 +45,7 @@ def write_trace(
     sandbox: str | None = None,
     approval: str | None = None,
 ) -> None:
-    path = root / "2026" / "07" / "17" / filename
+    path = root / "2026" / "08" / "28" / filename
     path.parent.mkdir(parents=True, exist_ok=True)
     parent_thread_id = parent_thread_id or (task_id if task_id and session_id != task_id else None)
     payload = {"id": session_id, "cwd": "/workspace"}
@@ -60,12 +60,14 @@ def write_trace(
         else:
             payload["source"] = "vscode"
     else:
-        payload.update({
-            "session_id": task_id,
-            "parent_thread_id": parent_thread_id,
-            "agent_role": role,
-            "agent_path": agent_path,
-        })
+        payload.update(
+            {
+                "session_id": task_id,
+                "parent_thread_id": parent_thread_id,
+                "agent_role": role,
+                "agent_path": agent_path,
+            }
+        )
     usage = {
         "input_tokens": input_tokens,
         "cached_input_tokens": cached_tokens,
@@ -88,31 +90,41 @@ def write_trace(
 
 
 class UsageByModelTests(unittest.TestCase):
+    def test_rate_snapshot_matches_current_configured_card(self) -> None:
+        self.assertEqual(usage_by_model.RATE_DATE, "2026-08-28")
+        self.assertEqual(usage_by_model.RATE_SOURCE, "https://help.openai.com/en/articles/11481834")
+        self.assertEqual(
+            usage_by_model.RATES,
+            {
+                "gpt-5.6-luna": {"input": 5.0, "cached": 0.5, "output": 30.0},
+                "gpt-5.6-terra": {"input": 50.0, "cached": 5.0, "output": 300.0},
+                "gpt-5.6-sol": {"input": 100.0, "cached": 10.0, "output": 500.0},
+            },
+        )
+
     def test_usage_row_exposes_token_totals_credit_components_and_effective_ratio(self) -> None:
         row = usage_by_model.usage_row(
             "gpt-5.6-sol",
             {"events": 1, "input": 100, "cached": 40, "output": 10, "reasoning": 7},
         )
-
         self.assertEqual(row["total_processed_tokens"], 110)
         self.assertEqual(row["uncached_input_tokens"], 60)
         self.assertEqual(row["reasoning_output_tokens"], 7)
-        self.assertAlmostEqual(row["estimated_standard_credits"], 0.0155)
+        self.assertAlmostEqual(row["estimated_standard_credits"], 0.0114)
         self.assertEqual(
             row["estimated_standard_credit_breakdown"],
-            {"uncached_input": 0.0075, "cached_input": 0.0005, "output": 0.0075},
+            {"uncached_input": 0.006, "cached_input": 0.0004, "output": 0.005},
         )
-        self.assertAlmostEqual(row["effective_processed_tokens_per_credit"], 110 / 0.0155)
+        self.assertAlmostEqual(row["effective_processed_tokens_per_credit"], 110 / 0.0114)
 
     def test_rate_card_exposes_type_specific_token_equivalents(self) -> None:
         cards = {row["model"]: row for row in usage_by_model.rate_card_rows()}
-
-        self.assertEqual(cards["gpt-5.6-sol"]["tokens_per_credit"]["uncached_input"], 8_000)
-        self.assertEqual(cards["gpt-5.6-sol"]["tokens_per_credit"]["cached_input"], 80_000)
-        self.assertAlmostEqual(cards["gpt-5.6-sol"]["tokens_per_credit"]["output"], 4_000 / 3)
-        self.assertEqual(cards["gpt-5.6-luna"]["tokens_per_credit"]["uncached_input"], 40_000)
-        self.assertEqual(cards["gpt-5.6-luna"]["tokens_per_credit"]["cached_input"], 400_000)
-        self.assertAlmostEqual(cards["gpt-5.6-luna"]["tokens_per_credit"]["output"], 20_000 / 3)
+        self.assertEqual(cards["gpt-5.6-sol"]["tokens_per_credit"]["uncached_input"], 10_000)
+        self.assertEqual(cards["gpt-5.6-sol"]["tokens_per_credit"]["cached_input"], 100_000)
+        self.assertEqual(cards["gpt-5.6-sol"]["tokens_per_credit"]["output"], 2_000)
+        self.assertEqual(cards["gpt-5.6-luna"]["tokens_per_credit"]["uncached_input"], 200_000)
+        self.assertEqual(cards["gpt-5.6-luna"]["tokens_per_credit"]["cached_input"], 2_000_000)
+        self.assertAlmostEqual(cards["gpt-5.6-luna"]["tokens_per_credit"]["output"], 100_000 / 3)
 
     def test_task_filter_includes_root_and_children_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -156,11 +168,9 @@ class UsageByModelTests(unittest.TestCase):
                 cached_tokens=0,
                 output_tokens=999,
             )
-
             by_model, by_agent, sessions, scanned, included, malformed, resolved = usage_by_model.scan(
                 root, None, "task-a"
             )
-
             self.assertEqual((scanned, included, malformed), (3, 2, 0))
             self.assertEqual(resolved, "task-a")
             self.assertEqual(by_model["gpt-5.6-sol"]["input"], 100)
@@ -177,27 +187,52 @@ class UsageByModelTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             write_trace(
-                root, "root.jsonl", session_id="legacy-root", task_id=None, role=None,
-                agent_path=None, model="gpt-5.6-sol", effort="high", input_tokens=100,
-                cached_tokens=50, output_tokens=10, legacy=True,
+                root,
+                "root.jsonl",
+                session_id="legacy-root",
+                task_id=None,
+                role=None,
+                agent_path=None,
+                model="gpt-5.6-sol",
+                effort="high",
+                input_tokens=100,
+                cached_tokens=50,
+                output_tokens=10,
+                legacy=True,
             )
             write_trace(
-                root, "child.jsonl", session_id="legacy-child", task_id=None, role="Explorer",
-                agent_path="/root/explore", model="gpt-5.6-luna", effort="medium",
-                input_tokens=50, cached_tokens=25, output_tokens=5,
-                parent_thread_id="legacy-root", legacy=True,
+                root,
+                "child.jsonl",
+                session_id="legacy-child",
+                task_id=None,
+                role="Explorer",
+                agent_path="/root/explore",
+                model="gpt-5.6-luna",
+                effort="medium",
+                input_tokens=50,
+                cached_tokens=25,
+                output_tokens=5,
+                parent_thread_id="legacy-root",
+                legacy=True,
             )
             write_trace(
-                root, "grandchild.jsonl", session_id="legacy-grandchild", task_id=None, role=None,
-                agent_path="/root/explore/helper", model="gpt-5.6-luna", effort="medium",
-                input_tokens=25, cached_tokens=10, output_tokens=3,
-                parent_thread_id="legacy-child", legacy=True,
+                root,
+                "grandchild.jsonl",
+                session_id="legacy-grandchild",
+                task_id=None,
+                role=None,
+                agent_path="/root/explore/helper",
+                model="gpt-5.6-luna",
+                effort="medium",
+                input_tokens=25,
+                cached_tokens=10,
+                output_tokens=3,
+                parent_thread_id="legacy-child",
+                legacy=True,
             )
-
             _, by_agent, sessions, _, included, _, resolved = usage_by_model.scan(
                 root, None, "legacy-root"
             )
-
             self.assertEqual((included, resolved), (3, "legacy-root"))
             self.assertEqual(by_agent["main · gpt-5.6-sol"]["input"], 100)
             self.assertEqual(by_agent["Explorer · gpt-5.6-luna"]["input"], 50)
@@ -218,14 +253,30 @@ class UsageByModelTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             write_trace(
-                root, "root.jsonl", session_id="task-current", task_id="task-current", role=None,
-                agent_path=None, model="gpt-5.6-sol", effort="xhigh", input_tokens=100,
-                cached_tokens=50, output_tokens=10,
+                root,
+                "root.jsonl",
+                session_id="task-current",
+                task_id="task-current",
+                role=None,
+                agent_path=None,
+                model="gpt-5.6-sol",
+                effort="xhigh",
+                input_tokens=100,
+                cached_tokens=50,
+                output_tokens=10,
             )
             write_trace(
-                root, "child.jsonl", session_id="child-current", task_id="task-current",
-                role="Reviewer", agent_path="/root/review", model="gpt-5.6-sol",
-                effort="high", input_tokens=50, cached_tokens=25, output_tokens=5,
+                root,
+                "child.jsonl",
+                session_id="child-current",
+                task_id="task-current",
+                role="Reviewer",
+                agent_path="/root/review",
+                model="gpt-5.6-terra",
+                effort="high",
+                input_tokens=50,
+                cached_tokens=25,
+                output_tokens=5,
             )
             _, _, _, _, included, _, resolved = usage_by_model.scan(root, None, args.task_id)
             self.assertEqual((included, resolved), (2, "task-current"))
@@ -233,7 +284,7 @@ class UsageByModelTests(unittest.TestCase):
     def test_session_rows_preserve_effort_changes_within_one_model(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            path = root / "2026" / "07" / "17" / "mixed.jsonl"
+            path = root / "2026" / "08" / "28" / "mixed.jsonl"
             path.parent.mkdir(parents=True)
             payload = {"id": "task-mixed", "session_id": "task-mixed", "cwd": "/workspace"}
             first = {"input_tokens": 100, "cached_input_tokens": 50, "output_tokens": 10}
@@ -246,7 +297,6 @@ class UsageByModelTests(unittest.TestCase):
                 + event("event_msg", {"type": "token_count", "info": {"last_token_usage": second}}),
                 encoding="utf-8",
             )
-
             by_model, _, sessions, _, _, _, _ = usage_by_model.scan(root, None, "task-mixed")
             self.assertEqual(by_model["gpt-5.6-sol"]["input"], 300)
             details = usage_by_model.session_rows(sessions)
@@ -256,19 +306,57 @@ class UsageByModelTests(unittest.TestCase):
     def test_runtime_status_timestamps_sandbox_and_depth(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            write_trace(root, "root.jsonl", session_id="root", task_id="root", role=None,
-                        agent_path=None, model="gpt-5.6-sol", effort="high", input_tokens=1,
-                        cached_tokens=0, output_tokens=1, started_at="2026-07-17T00:00:00Z",
-                        ended_at="2026-07-17T00:00:05Z", terminal="completed",
-                        sandbox="workspace-write", approval="on-request")
-            write_trace(root, "child.jsonl", session_id="child", task_id="root", role="Explorer",
-                        agent_path="/root/child", model="gpt-5.6-luna", effort="medium", input_tokens=1,
-                        cached_tokens=0, output_tokens=1, parent_thread_id="root",
-                        started_at="2026-07-17T00:01:00Z", ended_at="2026-07-17T00:01:02Z",
-                        terminal="interrupted", sandbox="read-only", approval="never")
-            write_trace(root, "grandchild.jsonl", session_id="grandchild", task_id="root", role="Explorer",
-                        agent_path="/root/child/g", model="gpt-5.6-luna", effort="medium", input_tokens=1,
-                        cached_tokens=0, output_tokens=1, parent_thread_id="child")
+            write_trace(
+                root,
+                "root.jsonl",
+                session_id="root",
+                task_id="root",
+                role=None,
+                agent_path=None,
+                model="gpt-5.6-sol",
+                effort="high",
+                input_tokens=1,
+                cached_tokens=0,
+                output_tokens=1,
+                started_at="2026-08-28T00:00:00Z",
+                ended_at="2026-08-28T00:00:05Z",
+                terminal="completed",
+                sandbox="workspace-write",
+                approval="on-request",
+            )
+            write_trace(
+                root,
+                "child.jsonl",
+                session_id="child",
+                task_id="root",
+                role="Explorer",
+                agent_path="/root/child",
+                model="gpt-5.6-luna",
+                effort="medium",
+                input_tokens=1,
+                cached_tokens=0,
+                output_tokens=1,
+                parent_thread_id="root",
+                started_at="2026-08-28T00:01:00Z",
+                ended_at="2026-08-28T00:01:02Z",
+                terminal="interrupted",
+                sandbox="read-only",
+                approval="never",
+            )
+            write_trace(
+                root,
+                "grandchild.jsonl",
+                session_id="grandchild",
+                task_id="root",
+                role="Explorer",
+                agent_path="/root/child/g",
+                model="gpt-5.6-luna",
+                effort="medium",
+                input_tokens=1,
+                cached_tokens=0,
+                output_tokens=1,
+                parent_thread_id="child",
+            )
             _, _, sessions, *_ = usage_by_model.scan(root, None, "root")
             details = usage_by_model.session_rows(sessions)
             root_row = next(r for r in details if r["session_id"] == "root")
@@ -287,16 +375,16 @@ class UsageByModelTests(unittest.TestCase):
     def test_latest_terminal_marker_wins_but_prior_final_is_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            path = root / "2026" / "07" / "17" / "followup.jsonl"
+            path = root / "2026" / "08" / "28" / "followup.jsonl"
             path.parent.mkdir(parents=True)
             payload = {"id": "followup", "session_id": "followup", "cwd": "/workspace"}
             usage = {"input_tokens": 1, "cached_input_tokens": 0, "output_tokens": 1}
             path.write_text(
-                event("session_meta", payload, "2026-07-17T00:00:00Z")
+                event("session_meta", payload, "2026-08-28T00:00:00Z")
                 + event("turn_context", {"model": "gpt-5.6-sol", "effort": "high"})
                 + event("event_msg", {"type": "token_count", "info": {"last_token_usage": usage}})
-                + event("event_msg", {"type": "task_complete"}, "2026-07-17T00:00:01Z")
-                + event("event_msg", {"type": "turn_aborted"}, "2026-07-17T00:00:02Z"),
+                + event("event_msg", {"type": "task_complete"}, "2026-08-28T00:00:01Z")
+                + event("event_msg", {"type": "turn_aborted"}, "2026-08-28T00:00:02Z"),
                 encoding="utf-8",
             )
             _, _, sessions, *_ = usage_by_model.scan(root, None, "followup")
@@ -308,16 +396,16 @@ class UsageByModelTests(unittest.TestCase):
     def test_resumed_session_is_incomplete_until_the_new_turn_finishes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            path = root / "2026" / "07" / "17" / "resumed.jsonl"
+            path = root / "2026" / "08" / "28" / "resumed.jsonl"
             path.parent.mkdir(parents=True)
             payload = {"id": "resumed", "session_id": "resumed", "cwd": "/workspace"}
             usage = {"input_tokens": 1, "cached_input_tokens": 0, "output_tokens": 1}
             path.write_text(
-                event("session_meta", payload, "2026-07-17T00:00:00Z")
+                event("session_meta", payload, "2026-08-28T00:00:00Z")
                 + event("turn_context", {"model": "gpt-5.6-sol", "effort": "high"})
                 + event("event_msg", {"type": "token_count", "info": {"last_token_usage": usage}})
-                + event("event_msg", {"type": "task_complete"}, "2026-07-17T00:00:01Z")
-                + event("event_msg", {"type": "task_started"}, "2026-07-17T00:00:02Z"),
+                + event("event_msg", {"type": "task_complete"}, "2026-08-28T00:00:01Z")
+                + event("event_msg", {"type": "task_started"}, "2026-08-28T00:00:02Z"),
                 encoding="utf-8",
             )
             _, _, sessions, *_ = usage_by_model.scan(root, None, "resumed")
