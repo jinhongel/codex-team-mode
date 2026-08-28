@@ -23,10 +23,10 @@ The Skill and custom Agent profiles are separate configuration surfaces. Install
 Team Mode requires these three profiles:
 
 - `Explorer`: `gpt-5.6-luna`, `medium`, `read-only`.
-- `Executor`: `gpt-5.6-luna`, `max`, `workspace-write`.
+- `Executor`: `gpt-5.6-luna`, `xhigh`, `workspace-write`.
 - `Reviewer`: `gpt-5.6-terra`, `high`, `read-only`.
 
-The defaults deliberately do not follow a mechanical “one level higher everywhere” rule. Explorer stays at Medium because most of its work is bounded search, tracing, and evidence compression. Executor uses Luna Max as a conservative quality margin for mutable implementation. Reviewer uses Terra High to give fresh independent review more room for counterexamples, regressions, requirement coverage, and weak assumptions.
+The defaults deliberately do not follow a mechanical “one level higher everywhere” rule. Explorer stays at Medium because most of its work is bounded search, tracing, and evidence compression. Executor uses Luna xHigh to keep substantial reasoning margin for mutable implementation while reserving Max for genuinely hardest quality-first workloads. Reviewer uses Terra High to give fresh independent review more room for counterexamples, regressions, requirement coverage, and weak assumptions.
 
 These are role defaults, not claims that one effort level is universally optimal. Do not upgrade or downgrade merely because a higher or lower setting exists. Change a profile when repeated representative tasks show that the current setting is materially insufficient or unnecessarily wasteful.
 
@@ -124,4 +124,5 @@ Model availability and preferences may differ between Codex environments. Preser
 - Keep new independent reviews fresh and neutral.
 - Keep unresolved user intent, product, editorial, architecture, interface, data-model, state-flow, safety, scope, and acceptance decisions in the main thread.
 - Prefer enough reasoning margin to avoid costly rework, but do not mechanically raise every role by one level.
+- Reserve Max for cases where representative evidence shows xHigh is not enough or the user explicitly wants a hardest-case quality-first run.
 - If a configured model is unavailable, verify current model availability before substituting another one.
